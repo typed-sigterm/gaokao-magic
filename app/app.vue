@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import confetti from 'canvas-confetti';
+import provinces from '~/assets/provinces.json';
 
 // ─────────────────────────── QQ WebView detection ────────────────────────────
 const isInApp = ref(false);
@@ -17,165 +18,28 @@ onMounted(() => {
 //   2 = transition (card spins + zoom + white flash)
 //   3 = cosmic portal final scene
 const stage = ref(0);
+const showProvinceModal = ref(false);
+const showAboutModal = ref(false);
 
 // ─────────────────────────── Province data ───────────────────────────────────
-const provinces = [
-  {
-    name: '安徽',
-    total: 750,
-  },
-  {
-    name: '北京',
-    total: 750,
-  },
-  {
-    name: '重庆',
-    total: 750,
-  },
-  {
-    name: '福建',
-    total: 750,
-  },
-  {
-    name: '甘肃',
-    total: 750,
-  },
-  {
-    name: '广东',
-    total: 750,
-  },
-  {
-    name: '广西',
-    total: 750,
-  },
-  {
-    name: '贵州',
-    total: 750,
-  },
-  {
-    name: '海南',
-    total: 900,
-  },
-  {
-    name: '河北',
-    total: 750,
-  },
-  {
-    name: '河南',
-    total: 750,
-  },
-  {
-    name: '黑龙江',
-    total: 750,
-  },
-  {
-    name: '湖北',
-    total: 750,
-  },
-  {
-    name: '湖南',
-    total: 750,
-  },
-  {
-    name: '吉林',
-    total: 750,
-  },
-  {
-    name: '江苏',
-    total: 750,
-  },
-  {
-    name: '江西',
-    total: 750,
-  },
-  {
-    name: '辽宁',
-    total: 750,
-  },
-  {
-    name: '内蒙古',
-    total: 750,
-  },
-  {
-    name: '宁夏',
-    total: 750,
-  },
-  {
-    name: '青海',
-    total: 750,
-  },
-  {
-    name: '山东',
-    total: 750,
-  },
-  {
-    name: '山西',
-    total: 750,
-  },
-  {
-    name: '陕西',
-    total: 750,
-  },
-  {
-    name: '上海',
-    total: 660,
-  },
-  {
-    name: '四川',
-    total: 750,
-  },
-  {
-    name: '天津',
-    total: 750,
-  },
-  {
-    name: '西藏',
-    total: 750,
-  },
-  {
-    name: '新疆',
-    total: 750,
-  },
-  {
-    name: '云南',
-    total: 750,
-  },
-  {
-    name: '浙江',
-    total: 750,
-  },
-];
-
-const selectedProvince = ref<{ name: string, total: number } | null>(null);
-const score = ref<number | null>(null);
 const cosmicPortalRef = ref<any>(null);
 
-// ─────────────────────────── localStorage persistence ────────────────────────
-onMounted(() => {
-  const saved = localStorage.getItem('gaokao-province');
-  if (saved) {
-    const p = provinces.find(p => p.name === saved);
-    if (p)
-      selectedProvince.value = p;
-  }
-  const savedScore = localStorage.getItem('gaokao-score');
-  if (savedScore)
-    score.value = Number(savedScore);
-});
+const province = useLocalStorage<string | null>('gaokao-province', null);
+const provinceInfo = computed(() =>
+  province.value ? provinces.find(p => p.name === province.value) ?? null : null,
+);
+const score = useLocalStorage<number | null>('gaokao-score', null);
 
 function selectProvince(p: typeof provinces[0]) {
-  if (selectedProvince.value)
-    return; // already set, immutable
-  selectedProvince.value = p;
-  localStorage.setItem('gaokao-province', p.name);
-  // proceed to transition after a brief delay
+  showProvinceModal.value = false;
+  province.value = p.name;
   startTransition();
 }
 
 function generateScore() {
-  if (!selectedProvince.value)
+  if (!provinceInfo.value)
     return;
-  const total = selectedProvince.value.total;
+  const total = provinceInfo.value.total;
   // Normal distribution using Box-Muller
   const u1 = Math.random();
   const u2 = Math.random();
@@ -192,88 +56,71 @@ function generateScore() {
     else
       s = total - 1;
   }
-  localStorage.setItem('gaokao-score', String(s));
   score.value = s;
 }
 
 // ─────────────────────────── Transition state ────────────────────────────────
 const transitioning = ref(false);
 const cardScale = ref(1);
-const cardRotateY = ref(0);
+const cardRotateDiag = ref(0);
 const cardOpacity = ref(1);
 const whiteFlash = ref(0); // 0 → 1
 const bgBlack = ref(false); // stage 0→1: bg fades to black
 
-function startTransition() {
-  // Step 1: bg fades to black over 1s
-  bgBlack.value = true;
-  stage.value = 1; // show province selection still, card tilts
+const transitionDuration = 2000;
+let transitionStart = 0;
+const { resume: runCardTransition, pause: pauseCardTransition } = useRafFn(() => {
+  const t = Math.min((performance.now() - transitionStart) / transitionDuration, 1);
+  const eased = t ** 3; // ease-in cubic
 
-  // We wait for province selection above; the real "go" is called from selectProvince
-  // which calls this. At this point province is already locked.
-  // Give 200ms for the province modal to close visually:
+  cardScale.value = 1 + eased * 12;
+  cardRotateDiag.value = eased * 180;
+  cardOpacity.value = 1 - eased * 0.8;
+  whiteFlash.value = t;
+
+  if (t >= 1) {
+    pauseCardTransition();
+    whiteFlash.value = 1;
+    setTimeout(() => {
+      stage.value = 3;
+      transitioning.value = false;
+      // fade out white
+      const fadeStart = performance.now();
+      function fadeOut(now: number) {
+        const ft = Math.min((now - fadeStart) / 800, 1);
+        whiteFlash.value = 1 - ft;
+        if (ft < 1)
+          requestAnimationFrame(fadeOut);
+      }
+      requestAnimationFrame(fadeOut);
+      if (!score.value)
+        generateScore();
+    }, 100);
+  }
+}, { immediate: false });
+
+function startTransition() {
+  bgBlack.value = true;
+  stage.value = 1;
   setTimeout(() => {
     stage.value = 2;
     transitioning.value = true;
-    doCardTransition();
+    transitionStart = performance.now();
+    runCardTransition();
   }, 300);
 }
 
-function doCardTransition() {
-  // 2s transition: scale up (ease-in) + rotate ~160deg (ease-in) + white flash
-  const startTime = performance.now();
-  const duration = 2000;
-
-  function tick(now: number) {
-    const t = Math.min((now - startTime) / duration, 1);
-    // ease-in cubic
-    const eased = t * t * t;
-
-    cardScale.value = 1 + eased * 12;
-    cardRotateY.value = eased * 160;
-    cardOpacity.value = 1 - eased * 0.8;
-    whiteFlash.value = t; // linear
-
-    if (t < 1) {
-      requestAnimationFrame(tick);
-    } else {
-      // Enter stage 3
-      whiteFlash.value = 1;
-      setTimeout(() => {
-        stage.value = 3;
-        transitioning.value = false;
-        // fade out white
-        const fadeStart = performance.now();
-        function fadeOut(now: number) {
-          const ft = Math.min((now - fadeStart) / 800, 1);
-          whiteFlash.value = 1 - ft;
-          if (ft < 1)
-            requestAnimationFrame(fadeOut);
-        }
-        requestAnimationFrame(fadeOut);
-        // If province was already saved, generate score immediately
-        if (!score.value)
-          generateScore();
-      }, 100);
-    }
-  }
-  requestAnimationFrame(tick);
-}
-
 // ─────────────────────────── Click handlers ──────────────────────────────────
-const showProvinceModal = ref(false);
-const showAboutModal = ref(false);
-
 function handleSplashClick() {
   if (stage.value !== 0)
     return;
-  if (selectedProvince.value) {
-    // Province already chosen – skip to transition directly
+  if (provinceInfo.value) {
     bgBlack.value = true;
     setTimeout(() => {
       stage.value = 2;
       transitioning.value = true;
-      doCardTransition();
+      transitionStart = performance.now();
+      runCardTransition();
     }, 800);
     return;
   }
@@ -292,23 +139,18 @@ const cardTilted = computed(() => stage.value >= 1);
 </script>
 
 <template>
-  <div style="position:fixed;inset:0;overflow:hidden">
+  <div class="fixed inset-0 overflow-hidden">
     <!-- ── In-app WebView banner ─────────────────────────────────────────────── -->
     <div
       v-if="isInApp"
-      style="
-        position:fixed;top:0;left:0;right:0;z-index:9999;
-        background:rgba(0,0,0,0.92);border-bottom:1px solid rgba(255,255,255,0.15);
-        padding:14px 20px;display:flex;align-items:center;gap:12px;
-        font-family:Saira,sans-serif;
-      "
+      class="fixed inset-x-0 top-0 z-9999 flex items-center gap-3 border-b border-white/15 bg-black/92 px-5 py-3.5 font-saira"
     >
-      <span style="font-size:18px">⚠️</span>
+      <span class="text-lg">⚠️</span>
       <div>
-        <div style="font-size:13px;font-weight:600;color:#fff;margin-bottom:2px">
+        <div class="mb-0.5 text-[13px] font-semibold text-white">
           检测到微信 / QQ 内置浏览器
         </div>
-        <div style="font-size:11px;color:rgba(255,255,255,0.6)">
+        <div class="text-[11px] text-white/60">
           为获得最佳体验，请点击右上角 ··· 并选择"在浏览器打开"
         </div>
       </div>
@@ -317,30 +159,24 @@ const cardTilted = computed(() => stage.value >= 1);
     <!-- ── Stage 0 & 1: Stars + Card ────────────────────────────────────── -->
     <div
       v-show="stage <= 1"
-      style="position:absolute;inset:0;transition:opacity 1s ease;z-index:1"
-      :style="{ opacity: bgBlack ? 0 : 1 }"
+      class="absolute inset-0 z-1 transition-opacity duration-1000 ease-in-out"
+      :class="bgBlack ? 'opacity-0' : 'opacity-100'"
     >
-      <InspiraStarsBackground style="position:absolute;inset:0" />
+      <InspiraStarsBackground class="absolute inset-0" />
     </div>
 
     <!-- Pure black bg shown when bg fades -->
-    <div
-      style="position:absolute;inset:0;background:#000;z-index:0"
-    />
+    <div class="absolute inset-0 z-0 bg-black" />
 
     <!-- Card (stages 0, 1, 2) -->
     <div
       v-show="stage <= 2"
-      style="
-        position:absolute;inset:0;z-index:10;
-        display:flex;flex-direction:column;align-items:center;justify-content:center;
-        pointer-events:none;
-      "
+      class="absolute inset-0 z-10 flex flex-col items-center justify-center pointer-events-none"
     >
       <div
         :style="{
           transform: transitioning
-            ? `perspective(800px) rotateY(${cardRotateY}deg) scale(${cardScale})`
+            ? `perspective(800px) rotate3d(1, -1, 0, ${cardRotateDiag}deg) scale(${cardScale})`
             : cardTilted
               ? 'perspective(800px) rotateX(6deg) rotateY(-6deg) scale(1)'
               : 'none',
@@ -352,25 +188,14 @@ const cardTilted = computed(() => stage.value >= 1);
       >
         <img
           src="/cover.png"
-          style="
-            width: min(260px, 55vw);
-            border-radius:14px;
-            box-shadow: 0 0 60px rgba(160,120,255,0.5), 0 0 120px rgba(80,60,180,0.3);
-            display:block;
-          "
+          class="block w-[min(260px,55vw)] rounded-[14px] shadow-[0_0_60px_var(--color-glow),0_0_120px_rgba(80,60,180,0.3)]"
         >
       </div>
 
       <!-- "Click to reveal" text -->
       <div
         v-show="!showProvinceModal && stage === 0"
-        style="
-          margin-top:28px;
-          font-family:Saira,sans-serif;font-size:15px;font-weight:300;
-          letter-spacing:0.25em;color:rgba(255,255,255,0.7);
-          animation: pulse-glow 2.5s ease-in-out infinite;
-          text-transform:uppercase;
-        "
+        class="mt-7 font-saira text-sm font-light uppercase tracking-[0.25em] text-white animate-pulse-glow"
         @click.stop="handleSplashClick"
       >
         Click to reveal
@@ -380,7 +205,7 @@ const cardTilted = computed(() => stage.value >= 1);
     <!-- Clickable overlay for stage 0 -->
     <div
       v-if="stage === 0 && !showProvinceModal"
-      style="position:absolute;inset:0;z-index:9;cursor:pointer"
+      class="absolute inset-0 z-9 cursor-pointer"
       @click="handleSplashClick"
     />
 
@@ -388,66 +213,32 @@ const cardTilted = computed(() => stage.value >= 1);
     <Transition name="fade">
       <div
         v-if="showProvinceModal && stage === 0"
-        style="
-          position:absolute;inset:0;z-index:50;
-          display:flex;align-items:center;justify-content:center;
-          background:rgba(0,0,0,0.75);
-          backdrop-filter:blur(6px);
-          -webkit-backdrop-filter:blur(6px);
-        "
+        class="absolute inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md"
         @click.self="showProvinceModal = false"
       >
         <div
-          style="
-            background:rgba(15,10,30,0.95);
-            border:1px solid rgba(160,120,255,0.3);
-            border-radius:18px;
-            padding:28px 24px;
-            max-width:min(480px, 92vw);
-            width:100%;
-            max-height:80vh;
-            overflow-y:auto;
-          "
+          class="w-full max-w-[min(480px,92vw)] max-h-[80vh] overflow-y-auto scrollbar-glow rounded-2xl border border-border-glow bg-surface-overlay p-7 px-6"
           @click.stop
         >
-          <div style="font-family:Saira,sans-serif;text-align:center;margin-bottom:20px">
-            <div style="font-size:18px;font-weight:600;color:#fff;letter-spacing:0.05em;margin-bottom:6px">
+          <div class="mb-5 text-center font-saira">
+            <div class="mb-1.5 text-lg font-semibold tracking-wide text-white">
               选择你的省份
             </div>
-            <div style="font-size:12px;color:rgba(255,255,255,0.45);letter-spacing:0.1em">
+            <div class="text-xs tracking-widest text-white/45">
               SELECT YOUR PROVINCE
             </div>
           </div>
-          <div
-            style="
-              display:grid;
-              grid-template-columns:repeat(auto-fill, 4em);
-              gap:8px;
-            "
-          >
+          <div class="grid grid-cols-[repeat(auto-fill,4em)] gap-2">
             <button
               v-for="p in provinces"
               :key="p.name"
-              style="
-                background:rgba(100,70,200,0.2);
-                border:1px solid rgba(160,120,255,0.25);
-                border-radius:8px;
-                padding:8px 4px;
-                font-family:Saira,sans-serif;
-                font-size:13px;
-                font-weight:500;
-                color:rgba(255,255,255,0.85);
-                cursor:pointer;
-                transition:all 0.2s;
-              "
-              @mouseover="($event.target as HTMLElement).style.background = 'rgba(120,80,240,0.5)'"
-              @mouseleave="($event.target as HTMLElement).style.background = 'rgba(100,70,200,0.2)'"
-              @click="() => { showProvinceModal = false; selectProvince(p) }"
+              class="cursor-pointer rounded-lg border border-border-glow-strong bg-btn-bg px-1 py-2 font-saira text-[13px] font-medium text-white/85 transition-all duration-200 hover:bg-btn-bg-hover"
+              @click="selectProvince(p)"
             >
               {{ p.name }}
             </button>
-            <p style="grid-column:span 2;margin-top:12px;font-size:11px;color:rgba(255,255,255,0.5);text-align:center">
-              （无高考的地区已省略）
+            <p class="col-span-2 mt-3 text-center text-[11px] text-white/50">
+              不参加高考的地区已省略
             </p>
           </div>
         </div>
@@ -457,22 +248,13 @@ const cardTilted = computed(() => stage.value >= 1);
     <!-- ── White flash overlay ───────────────────────────────────────────── -->
     <div
       v-show="whiteFlash > 0"
-      style="position:absolute;inset:0;z-index:100;background:#fff;pointer-events:none"
+      class="absolute inset-0 z-100 bg-white pointer-events-none"
       :style="{ opacity: whiteFlash }"
     />
 
     <!-- ── About floating button (bottom-right) ─────────────────────────────── -->
     <button
-      style="
-        position:fixed;bottom:20px;right:20px;z-index:200;
-        width:44px;height:44px;border-radius:50%;
-        background:rgba(100,70,200,0.35);
-        border:1px solid rgba(160,120,255,0.3);
-        backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
-        display:flex;align-items:center;justify-content:center;
-        cursor:pointer;transition:all 0.25s;
-        color:rgba(255,255,255,0.7);
-      "
+      class="fixed bottom-5 right-5 z-200 flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border border-border-glow bg-btn-bg-active text-white/70 backdrop-blur-lg transition-all duration-250 hover:bg-btn-bg-hover"
       @click="showAboutModal = true"
     >
       <Icon name="lucide:info" size="20" />
@@ -482,53 +264,33 @@ const cardTilted = computed(() => stage.value >= 1);
     <Transition name="fade">
       <div
         v-if="showAboutModal"
-        style="
-          position:fixed;inset:0;z-index:300;
-          display:flex;align-items:center;justify-content:center;
-          background:rgba(0,0,0,0.75);
-          backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
-        "
+        class="fixed inset-0 z-300 flex items-center justify-center bg-black/75 backdrop-blur-md"
         @click.self="showAboutModal = false"
       >
         <div
-          style="
-            background:rgba(15,10,30,0.95);
-            border:1px solid rgba(160,120,255,0.3);
-            border-radius:18px;
-            padding:32px 28px;
-            max-width:min(380px, 88vw);
-            width:100%;
-            text-align:center;
-            font-family:Saira,sans-serif;
-          "
+          class="w-full max-w-[min(380px,88vw)] rounded-2xl border border-border-glow bg-surface-overlay p-8 px-7 text-center font-saira"
           @click.stop
         >
-          <div style="font-size:20px;font-weight:700;color:#fff;letter-spacing:0.05em;margin-bottom:6px">
+          <div class="mb-1.5 text-xl font-bold tracking-wide text-white">
             Gaokao Magic
           </div>
 
-          <div style="font-size:14px;color:rgba(255,255,255,0.75);line-height:1.8;margin-bottom:20px">
+          <div class="mb-5 text-sm leading-[1.8] text-white/75">
             Presented by
-            <a href="https://typed-sigterm.me/?utm_source=gaokao-magic.by-ts.top&utm_medium=copyright" target="_blank" style="color:#a78bfa;font-weight:600">Typed SIGTERM</a>
+            <a href="https://typed-sigterm.me/?utm_source=gaokao-magic.by-ts.top&utm_medium=copyright" target="_blank" class="font-semibold text-primary">Typed SIGTERM</a>
             <br>
             from
-            <a href="https://www.paperchemis.com/?utm_source=gaokao-magic.by-ts.top&utm_medium=copyright" target="_blank" style="color:#a78bfa;font-weight:600">Paper Chemis</a>
+            <a href="https://www.paperchemis.com/?utm_source=gaokao-magic.by-ts.top&utm_medium=copyright" target="_blank" class="font-semibold text-primary">Paper Chemis</a>
+            <br>
+            Animation by
+            <a href="https://inspira-ui.com" target="_blank" class="font-semibold text-primary">Inspira UI</a>
           </div>
 
           <a
             href="https://github.com/typed-sigterm/gaokao-magic"
             target="_blank"
             rel="noopener"
-            style="
-              display:inline-flex;align-items:center;gap:8px;
-              padding:10px 20px;border-radius:10px;
-              background:rgba(100,70,200,0.25);
-              border:1px solid rgba(160,120,255,0.3);
-              color:rgba(255,255,255,0.85);font-size:13px;font-weight:500;
-              text-decoration:none;transition:all 0.2s;
-            "
-            @mouseover="($event.target as HTMLElement).closest('a')!.style.background = 'rgba(120,80,240,0.45)'"
-            @mouseleave="($event.target as HTMLElement).closest('a')!.style.background = 'rgba(100,70,200,0.25)'"
+            class="inline-flex items-center gap-2 rounded-[10px] border border-border-glow bg-btn-bg-active px-5 py-2.5 text-[13px] font-medium text-white/85 no-underline transition-all duration-200 hover:bg-btn-bg-hover"
           >
             <Icon name="lucide:github" size="18" />
             GitHub
@@ -540,7 +302,7 @@ const cardTilted = computed(() => stage.value >= 1);
     <!-- ── Stage 3: Cosmic Portal ────────────────────────────────────────── -->
     <div
       v-show="stage === 3"
-      style="position:absolute;inset:0;z-index:20;cursor:pointer"
+      class="absolute inset-0 z-20 cursor-pointer"
       @click="handlePortalClick"
     >
       <InspiraCosmicPortal
@@ -551,36 +313,17 @@ const cardTilted = computed(() => stage.value >= 1);
         vortex-color="#059669"
         :bloom-strength="1.4"
         :rotation-speed="0.25"
-        style="position:absolute;inset:0"
+        class="absolute inset-0"
       />
 
       <!-- Prompt text above the portal core -->
-      <div
-        style="
-          position:absolute;inset:0;
-          display:flex;flex-direction:column;align-items:center;justify-content:center;
-          pointer-events:none;
-          font-family:Saira,sans-serif;
-        "
-      >
+      <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none font-saira">
         <!-- Text above: click prompt -->
         <div
-          style="
-            margin-bottom: max(120px, 20vh);
-            font-size:22px;
-            font-weight:500;letter-spacing:0.2em;text-transform:uppercase;
-            color:rgba(255,255,255,0.8);
-            animation:pulse-glow 2.5s ease-in-out infinite;
-            text-align:center;padding:0 24px;
-          "
+          class="mb-[max(120px,20vh)] px-6 text-center text-[22px] font-medium uppercase tracking-[0.2em] text-white/80 animate-pulse-glow"
         >
           Prefill your Gaokao score
-          <div
-            style="
-              font-size:16px;color:rgba(255,255,255,0.5);
-              margin-top:10px;letter-spacing:0.1em;
-            "
-          >
+          <div class="mt-2.5 text-base tracking-widest text-white/50">
             Click to resample
           </div>
         </div>
@@ -589,32 +332,16 @@ const cardTilted = computed(() => stage.value >= 1);
         <div
           v-if="score !== null"
           :key="score"
-          style="
-            margin-top: max(120px, 20vh);
-            text-align:center;
-          "
+          class="mt-[max(120px,20vh)] text-center"
         >
           <div
-            style="
-              font-size:clamp(52px, 12vw, 96px);
-              font-weight:800;
-              letter-spacing:-0.02em;
-              color:#fff;
-              text-shadow:0 0 30px rgba(180,140,255,0.8), 0 0 80px rgba(100,60,255,0.5);
-              animation:score-in 0.7s cubic-bezier(0.34,1.56,0.64,1) both;
-            "
+            class="text-[clamp(52px,12vw,96px)] font-extrabold tracking-[-0.02em] text-white animate-score-in"
+            style="text-shadow: 0 0 30px var(--color-score-glow), 0 0 80px var(--color-score-glow-deep)"
           >
             {{ score }}
           </div>
-          <div
-            style="
-              font-size:clamp(12px, 2vw, 14px);
-              font-weight:300;letter-spacing:0.3em;text-transform:uppercase;
-              color:rgba(255,255,255,0.4);
-              margin-top:6px;
-            "
-          >
-            / {{ selectedProvince?.total }} · {{ selectedProvince?.name }}
+          <div class="mt-1.5 text-[clamp(12px,2vw,14px)] font-light uppercase tracking-[0.3em] text-white/40">
+            / {{ provinceInfo?.total }} · {{ provinceInfo?.name }}
           </div>
         </div>
       </div>
@@ -623,15 +350,32 @@ const cardTilted = computed(() => stage.value >= 1);
 </template>
 
 <style scoped>
+.scrollbar-glow::-webkit-scrollbar { width: 4px; }
+.scrollbar-glow::-webkit-scrollbar-track { background: transparent; }
+.scrollbar-glow::-webkit-scrollbar-thumb { background: var(--color-glow-subtle); border-radius: 2px; }
+
 .fade-enter-active, .fade-leave-active {
   transition: opacity 0.3s ease;
 }
 .fade-enter-from, .fade-leave-to {
   opacity: 0;
 }
+</style>
 
-/* Scrollbar styling for province modal */
-div::-webkit-scrollbar { width: 4px; }
-div::-webkit-scrollbar-track { background: transparent; }
-div::-webkit-scrollbar-thumb { background: rgba(160,120,255,0.3); border-radius: 2px; }
+<style>
+@keyframes breathe {
+  0%, 100% { transform: perspective(800px) rotateX(0deg) rotateY(0deg) scale(1); }
+  50% { transform: perspective(800px) rotateX(0deg) rotateY(0deg) scale(1.04); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { text-shadow: 0 0 8px rgba(255,255,255,0.3); }
+  50% { text-shadow: 0 0 20px rgba(255,255,255,0.8), 0 0 40px rgba(180,160,255,0.4); }
+}
+
+@keyframes score-in {
+  0% { opacity: 0; transform: translateY(20px) scale(0.8); }
+  60% { transform: translateY(-4px) scale(1.05); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
 </style>

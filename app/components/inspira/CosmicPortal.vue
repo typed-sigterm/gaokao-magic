@@ -73,7 +73,7 @@ let resizeObserver: ResizeObserver;
 
 // ── "zoom into portal" state ──
 // The camera starts at distance 15. Each click moves it closer.
-let targetZ = 15;
+let targetZ = 40;
 
 function initThreeJS() {
   if (!canvasRef.value)
@@ -87,7 +87,7 @@ function initThreeJS() {
   const height = container ? container.clientHeight : window.innerHeight;
 
   camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
-  camera.position.set(0, 0, 15);
+  camera.position.set(0, 0, 40);
 
   scene.add(new THREE.AmbientLight(0x330066, 0.2));
   const mainLight = new THREE.DirectionalLight(0xFFFFFF, 0.6);

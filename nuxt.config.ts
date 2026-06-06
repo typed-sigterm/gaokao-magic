@@ -1,14 +1,31 @@
+import tailwindcss from '@tailwindcss/vite';
+
 export default defineNuxtConfig({
+  compatibilityDate: '2026-06-06',
+
   app: {
     head: {
       title: 'Gaokao Magic',
+      meta: [
+        { name: 'description', content: 'Prefill your Gaokao score!' },
+      ],
     },
   },
-  compatibilityDate: '2026-06-06',
+
+  modules: [
+    '@nuxt/fonts',
+    '@nuxt/icon',
+    '@vueuse/nuxt',
+  ],
+
   ssr: false,
+
   css: ['~/app.css'],
-  modules: ['@nuxt/fonts', '@nuxt/icon'],
+
   vite: {
+    plugins: [
+      tailwindcss(),
+    ],
     optimizeDeps: {
       include: [
         '@vue/devtools-core',
@@ -25,6 +42,7 @@ export default defineNuxtConfig({
       ],
     },
   },
+
   fonts: {
     provider: 'bunny',
     providers: {
@@ -35,7 +53,9 @@ export default defineNuxtConfig({
       { name: 'Saira', provider: 'bunny', weights: [300, 400, 500, 600, 700, 800] },
     ],
   },
+
   icon: {
+    mode: 'svg',
     clientBundle: {
       scan: true,
     },

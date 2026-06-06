@@ -1,4 +1,8 @@
 // @ts-check
 import ts from '@typed-sigterm/eslint-config';
 
-export default ts();
+export default ts({
+  ignores: [
+    'app/components/inspira/**',
+  ],
+});
