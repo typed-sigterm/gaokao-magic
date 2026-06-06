@@ -180,7 +180,8 @@ function generateScore() {
   const u1 = Math.random();
   const u2 = Math.random();
   const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
-  const mean = 0.85;
+  const min = 0.6;
+  const mean = 0.75;
   const stdDev = 0.08;
   const tail = 50;
   let raw = mean + z * stdDev;
@@ -189,7 +190,7 @@ function generateScore() {
   let finalRatio: number;
   if (raw <= mean) {
     // linear map [0, mean] → [0.60, mean]
-    finalRatio = 0.60 + (raw / mean) * (mean - 0.60);
+    finalRatio = min + (raw / mean) * (mean - min);
   } else {
     finalRatio = raw;
   }
