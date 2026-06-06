@@ -7,12 +7,13 @@ export default defineNuxtConfig({
   compatibilityDate: '2026-06-06',
   ssr: false,
   css: ['~/app.css'],
-  modules: ['@nuxt/fonts'],
+  modules: ['@nuxt/fonts', '@nuxt/icon'],
   vite: {
     optimizeDeps: {
       include: [
         '@vue/devtools-core',
         '@vue/devtools-kit',
+        'canvas-confetti',
         'motion-v',
         'three',
         'three/addons/controls/OrbitControls.js',
@@ -33,5 +34,10 @@ export default defineNuxtConfig({
     families: [
       { name: 'Saira', provider: 'bunny', weights: [300, 400, 500, 600, 700, 800] },
     ],
+  },
+  icon: {
+    clientBundle: {
+      scan: true,
+    },
   },
 });

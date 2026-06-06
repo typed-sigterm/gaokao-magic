@@ -2,11 +2,11 @@
 import confetti from 'canvas-confetti';
 
 // ─────────────────────────── QQ WebView detection ────────────────────────────
-const isQQ = ref(false);
+const isInApp = ref(false);
 onMounted(() => {
   const ua = navigator.userAgent;
-  if (/QQ\//i.test(ua) || /MQQBrowser/i.test(ua) || /QQJSSDK/i.test(ua)) {
-    isQQ.value = true;
+  if (/QQ\//i.test(ua) || /MQQBrowser/i.test(ua) || /QQJSSDK/i.test(ua) || /Wechat\//i.test(ua)) {
+    isInApp.value = true;
   }
 });
 
@@ -181,25 +181,16 @@ function generateScore() {
   const u2 = Math.random();
   const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
   const min = 0.6;
-  const mean = 0.75;
+  const mean = 0.8;
   const stdDev = 0.08;
-  const tail = 50;
   let raw = mean + z * stdDev;
-  raw = Math.max(0, Math.min(1, raw));
-
-  let finalRatio: number;
-  if (raw <= mean) {
-    // linear map [0, mean] → [0.60, mean]
-    finalRatio = min + (raw / mean) * (mean - min);
-  } else {
-    finalRatio = raw;
-  }
-  let s = Math.round(finalRatio * (total + tail));
-  if (s === total + tail) {
-    confetti();
-    s = total;
-  } else if (s > total) {
-    s = total - 1;
+  raw = Math.max(min, Math.min(1, raw));
+  let s = Math.round(raw * total);
+  if (s === total) {
+    if (Math.random() > 0.99)
+      confetti();
+    else
+      s = total - 1;
   }
   localStorage.setItem('gaokao-score', String(s));
   score.value = s;
@@ -271,6 +262,7 @@ function doCardTransition() {
 
 // ─────────────────────────── Click handlers ──────────────────────────────────
 const showProvinceModal = ref(false);
+const showAboutModal = ref(false);
 
 function handleSplashClick() {
   if (stage.value !== 0)
@@ -301,9 +293,9 @@ const cardTilted = computed(() => stage.value >= 1);
 
 <template>
   <div style="position:fixed;inset:0;overflow:hidden">
-    <!-- ── QQ WebView banner ─────────────────────────────────────────────── -->
+    <!-- ── In-app WebView banner ─────────────────────────────────────────────── -->
     <div
-      v-if="isQQ"
+      v-if="isInApp"
       style="
         position:fixed;top:0;left:0;right:0;z-index:9999;
         background:rgba(0,0,0,0.92);border-bottom:1px solid rgba(255,255,255,0.15);
@@ -314,7 +306,7 @@ const cardTilted = computed(() => stage.value >= 1);
       <span style="font-size:18px">⚠️</span>
       <div>
         <div style="font-size:13px;font-weight:600;color:#fff;margin-bottom:2px">
-          检测到 QQ 内置浏览器
+          检测到微信 / QQ 内置浏览器
         </div>
         <div style="font-size:11px;color:rgba(255,255,255,0.6)">
           为获得最佳体验，请点击右上角 ··· 并选择"在浏览器打开"
@@ -468,6 +460,82 @@ const cardTilted = computed(() => stage.value >= 1);
       style="position:absolute;inset:0;z-index:100;background:#fff;pointer-events:none"
       :style="{ opacity: whiteFlash }"
     />
+
+    <!-- ── About floating button (bottom-right) ─────────────────────────────── -->
+    <button
+      style="
+        position:fixed;bottom:20px;right:20px;z-index:200;
+        width:44px;height:44px;border-radius:50%;
+        background:rgba(100,70,200,0.35);
+        border:1px solid rgba(160,120,255,0.3);
+        backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+        display:flex;align-items:center;justify-content:center;
+        cursor:pointer;transition:all 0.25s;
+        color:rgba(255,255,255,0.7);
+      "
+      @click="showAboutModal = true"
+    >
+      <Icon name="lucide:info" size="20" />
+    </button>
+
+    <!-- ── About modal ────────────────────────────────────────────────────────── -->
+    <Transition name="fade">
+      <div
+        v-if="showAboutModal"
+        style="
+          position:fixed;inset:0;z-index:300;
+          display:flex;align-items:center;justify-content:center;
+          background:rgba(0,0,0,0.75);
+          backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+        "
+        @click.self="showAboutModal = false"
+      >
+        <div
+          style="
+            background:rgba(15,10,30,0.95);
+            border:1px solid rgba(160,120,255,0.3);
+            border-radius:18px;
+            padding:32px 28px;
+            max-width:min(380px, 88vw);
+            width:100%;
+            text-align:center;
+            font-family:Saira,sans-serif;
+          "
+          @click.stop
+        >
+          <div style="font-size:20px;font-weight:700;color:#fff;letter-spacing:0.05em;margin-bottom:6px">
+            Gaokao Magic
+          </div>
+
+          <div style="font-size:14px;color:rgba(255,255,255,0.75);line-height:1.8;margin-bottom:20px">
+            Presented by
+            <a href="https://typed-sigterm.me/?utm_source=gaokao-magic.by-ts.top&utm_medium=copyright" target="_blank" style="color:#a78bfa;font-weight:600">Typed SIGTERM</a>
+            <br>
+            from
+            <a href="https://www.paperchemis.com/?utm_source=gaokao-magic.by-ts.top&utm_medium=copyright" target="_blank" style="color:#a78bfa;font-weight:600">Paper Chemis</a>
+          </div>
+
+          <a
+            href="https://github.com/typed-sigterm/gaokao-magic"
+            target="_blank"
+            rel="noopener"
+            style="
+              display:inline-flex;align-items:center;gap:8px;
+              padding:10px 20px;border-radius:10px;
+              background:rgba(100,70,200,0.25);
+              border:1px solid rgba(160,120,255,0.3);
+              color:rgba(255,255,255,0.85);font-size:13px;font-weight:500;
+              text-decoration:none;transition:all 0.2s;
+            "
+            @mouseover="($event.target as HTMLElement).closest('a')!.style.background = 'rgba(120,80,240,0.45)'"
+            @mouseleave="($event.target as HTMLElement).closest('a')!.style.background = 'rgba(100,70,200,0.25)'"
+          >
+            <Icon name="lucide:github" size="18" />
+            GitHub
+          </a>
+        </div>
+      </div>
+    </Transition>
 
     <!-- ── Stage 3: Cosmic Portal ────────────────────────────────────────── -->
     <div

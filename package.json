@@ -15,6 +15,7 @@
   },
   "devDependencies": {
     "@antfu/eslint-config": "^9.0.0",
+    "@nuxt/icon": "^2.2.3",
     "@typed-sigterm/eslint-config": "^1.7.1",
     "@types/canvas-confetti": "^1.9.0",
     "@types/three": "^0.184.1",
