@@ -1,0 +1,13 @@
+name = "gaokao-magic"
+compatibility_date = "2026-06-06"
+preview_urls = true
+
+[assets]
+directory = "./dist"
+
+[build]
+command = "bun run build"
+
+[route]
+pattern = "gaokao-magic.by-ts.top"
+custom_domain = true
