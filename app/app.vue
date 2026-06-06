@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import confetti from 'canvas-confetti';
+
 // ─────────────────────────── QQ WebView detection ────────────────────────────
 const isQQ = ref(false);
 onMounted(() => {
@@ -170,30 +172,25 @@ function selectProvince(p: typeof provinces[0]) {
   startTransition();
 }
 
-// ─────────────────────────── Score generation ────────────────────────────────
 function generateScore() {
   if (!selectedProvince.value)
     return;
   const total = selectedProvince.value.total;
-  // Normal distribution using Box-Muller
-  const u1 = Math.random();
-  const u2 = Math.random();
-  const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
-  const mean = 0.85;
-  const stdDev = 0.08;
-  let raw = mean + z * stdDev;
-  raw = Math.max(0, Math.min(1, raw));
-
-  let finalRatio: number;
-  if (raw <= mean) {
-    // linear map [0, mean] → [0.60, mean]
-    finalRatio = 0.60 + (raw / mean) * (mean - 0.60);
+  // Uniform random integer in [0, total+50]
+  const raw = Math.floor(Math.random() * (total + 51));
+  let s: number;
+  if (raw >= total + 50) {
+    s = total; // 满分
+  } else if (raw >= total) {
+    s = total - 1;
   } else {
-    finalRatio = raw;
+    s = raw;
   }
-  const s = Math.round(finalRatio * total);
   score.value = s;
   localStorage.setItem('gaokao-score', String(s));
+  if (s === total) {
+    confetti();
+  }
 }
 
 // ─────────────────────────── Transition state ────────────────────────────────
