@@ -1,6 +1,15 @@
 <script setup lang="ts">
 import confetti from 'canvas-confetti';
-import provinces from '~/assets/provinces.json';
+
+const exam = useExam();
+const provinces = exam.value.provinces;
+
+useHead({
+  title: () => `${exam.value.label} Magic`,
+  meta: [
+    { name: 'description', content: () => `Prefill your ${exam.value.label} score!` },
+  ],
+});
 
 // ─────────────────────────── QQ WebView detection ────────────────────────────
 const isInApp = ref(false);
@@ -24,11 +33,11 @@ const showAboutModal = ref(false);
 // ─────────────────────────── Province data ───────────────────────────────────
 const cosmicPortalRef = ref<any>(null);
 
-const province = useLocalStorage<string | null>('gaokao-province', null);
+const province = useLocalStorage<string | null>(`${exam.value.type}-province`, null);
 const provinceInfo = computed(() =>
   province.value ? provinces.find(p => p.name === province.value) ?? null : null,
 );
-const score = useLocalStorage<number | null>('gaokao-score', null);
+const score = useLocalStorage<number | null>(`${exam.value.type}-score`, null);
 
 function selectProvince(p: typeof provinces[0]) {
   showProvinceModal.value = false;
@@ -222,10 +231,10 @@ const cardTilted = computed(() => stage.value >= 1);
         >
           <div class="mb-5 text-center font-saira">
             <div class="mb-1.5 text-lg font-semibold tracking-wide text-white">
-              选择你的省份
+              选择你的{{ exam.regionLabel }}
             </div>
             <div class="text-xs tracking-widest text-white/45">
-              SELECT YOUR PROVINCE
+              SELECT YOUR {{ exam.regionLabel.toUpperCase() }}
             </div>
           </div>
           <div class="grid grid-cols-[repeat(auto-fill,4em)] gap-2">
@@ -238,7 +247,7 @@ const cardTilted = computed(() => stage.value >= 1);
               {{ p.name }}
             </button>
             <p class="col-span-2 mt-3 text-center text-[11px] text-white/50">
-              不参加高考的地区已省略
+              {{ exam.omittedText }}
             </p>
           </div>
         </div>
@@ -272,15 +281,15 @@ const cardTilted = computed(() => stage.value >= 1);
           @click.stop
         >
           <div class="mb-1.5 text-xl font-bold tracking-wide text-white">
-            Gaokao Magic
+            {{ exam.aboutTitle }}
           </div>
 
           <div class="mb-5 text-sm leading-[1.8] text-white/75">
             Presented by
-            <a href="https://typed-sigterm.me/?utm_source=gaokao-magic.by-ts.top&utm_medium=copyright" target="_blank" class="font-semibold text-primary">Typed SIGTERM</a>
+            <a :href="`https://typed-sigterm.me/?utm_source=${exam.utmSource}&utm_medium=copyright`" target="_blank" class="font-semibold text-primary">Typed SIGTERM</a>
             <br>
             from
-            <a href="https://www.paperchemis.com/?utm_source=gaokao-magic.by-ts.top&utm_medium=copyright" target="_blank" class="font-semibold text-primary">Paper Chemis</a>
+            <a :href="`https://www.paperchemis.com/?utm_source=${exam.utmSource}&utm_medium=copyright`" target="_blank" class="font-semibold text-primary">Paper Chemis</a>
             <br>
             Animation by
             <a href="https://inspira-ui.com" target="_blank" class="font-semibold text-primary">Inspira UI</a>
@@ -322,7 +331,7 @@ const cardTilted = computed(() => stage.value >= 1);
         <div
           class="mb-[max(120px,20vh)] px-6 text-center text-[22px] font-medium uppercase tracking-[0.2em] text-white/80 animate-pulse-glow"
         >
-          Prefill your Gaokao score
+          {{ exam.portalPrompt }}
           <div class="mt-2.5 text-base tracking-widest text-white/50">
             Click to resample
           </div>

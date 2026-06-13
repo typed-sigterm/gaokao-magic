@@ -5,9 +5,9 @@ export default defineNuxtConfig({
 
   app: {
     head: {
-      title: 'Gaokao Magic',
+      title: 'Magic',
       meta: [
-        { name: 'description', content: 'Prefill your Gaokao score!' },
+        { name: 'description', content: 'Prefill your Gaokao/Zhongkao score!' },
       ],
     },
   },

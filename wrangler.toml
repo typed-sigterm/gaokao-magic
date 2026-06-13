@@ -8,6 +8,10 @@ directory = "./dist"
 [build]
 command = "bun run build"
 
-[route]
+[[routes]]
 pattern = "gaokao-magic.by-ts.top"
+custom_domain = true
+
+[[routes]]
+pattern = "zhongkao-magic.by-ts.top"
 custom_domain = true
