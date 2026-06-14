@@ -47,7 +47,7 @@ const configs: Record<ExamType, ExamConfig> = {
   },
 };
 
-function detectExamType(): ExamType {
+export function detectExamType(): ExamType {
   if (typeof window === 'undefined')
     return 'gaokao';
   const host = window.location.hostname;
@@ -56,11 +56,7 @@ function detectExamType(): ExamType {
   return 'gaokao';
 }
 
-// TODO: report to upstream
-// eslint-disable-next-line unused-imports/no-unused-vars
-let currentExam: ReturnType<typeof ref<ExamConfig>>;
-
 export function useExam() {
   const examType = detectExamType();
-  return currentExam = ref(configs[examType]!);
+  return ref(configs[examType]!);
 }

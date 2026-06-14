@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import confetti from 'canvas-confetti';
+import { detectExamType } from '~/composables/useExam';
 
 const exam = useExam();
 const provinces = exam.value.provinces;
@@ -50,11 +51,11 @@ function generateScore() {
     return;
   const total = provinceInfo.value.total;
   // Normal distribution using Box-Muller
-  const u1 = Math.random();
-  const u2 = Math.random();
+  const u1 = Math.random(), u2 = Math.random();
   const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
-  const min = 0.6;
-  const mean = 0.8;
+  const exam = detectExamType();
+  const min = exam === 'zhongkao' ? 0.8 : 0.6;
+  const mean = exam === 'zhongkao' ? 0.9 : 0.8;
   const stdDev = 0.08;
   let raw = mean + z * stdDev;
   raw = Math.max(min, Math.min(1, raw));
