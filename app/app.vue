@@ -231,10 +231,10 @@ const cardTilted = computed(() => stage.value >= 1);
         >
           <div class="mb-5 text-center font-saira">
             <div class="mb-1.5 text-lg font-semibold tracking-wide text-white">
-              选择你的{{ exam.regionLabel }}
+              选择你的地区
             </div>
             <div class="text-xs tracking-widest text-white/45">
-              SELECT YOUR {{ exam.regionLabel.toUpperCase() }}
+              SELECT YOUR REGION
             </div>
           </div>
           <div class="grid grid-cols-[repeat(auto-fill,4em)] gap-2">

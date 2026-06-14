@@ -12,8 +12,6 @@ export interface ExamConfig {
   label: string
   /** Chinese display label */
   labelCn: string
-  /** Whether to say 省份 or 城市 */
-  regionLabel: string
   /** "不参加 XX 的地区已省略" */
   omittedText: string
   /** Title for the about modal */
@@ -31,7 +29,6 @@ const configs: Record<ExamType, ExamConfig> = {
     provinces: gaokaoProvinces,
     label: 'Gaokao',
     labelCn: '高考',
-    regionLabel: '省份',
     omittedText: '不参加高考的地区已省略',
     aboutTitle: 'Gaokao Magic',
     portalPrompt: 'Prefill your Gaokao score',
@@ -43,8 +40,7 @@ const configs: Record<ExamType, ExamConfig> = {
     provinces: zhongkaoProvinces,
     label: 'Zhongkao',
     labelCn: '中考',
-    regionLabel: '城市',
-    omittedText: '不参加中考的城市已省略',
+    omittedText: '不参加中考的地区已省略',
     aboutTitle: 'Zhongkao Magic',
     portalPrompt: 'Prefill your Zhongkao score',
     utmSource: 'zhongkao-magic.by-ts.top',
