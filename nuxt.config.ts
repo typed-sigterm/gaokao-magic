@@ -43,6 +43,10 @@ export default defineNuxtConfig({
     },
   },
 
+  nitro: {
+    preset: 'cloudflare-module',
+  },
+
   fonts: {
     provider: 'bunny',
     providers: {
