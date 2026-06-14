@@ -1,5 +1,5 @@
-import gaokaoProvinces from '~/assets/gaokao-provinces.json';
-import zhongkaoProvinces from '~/assets/zhongkao-provinces.json';
+import gaokaoProvinces from '~/assets/gaokao.json';
+import zhongkaoProvinces from '~/assets/zhongkao.json';
 
 export type ExamType = 'gaokao' | 'zhongkao';
 
