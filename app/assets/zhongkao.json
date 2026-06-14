@@ -5,7 +5,7 @@
   { "name": "重庆", "total": 750 },
   { "name": "河北", "total": 800 },
   { "name": "山西", "total": 730 },
-  { "name": "内蒙古", "total": 620 },
+  { "name": "内蒙古", "total": 740 },
   { "name": "辽宁", "total": 790 },
   { "name": "吉林", "total": 750 },
   { "name": "黑龙江", "total": 560 },
@@ -24,10 +24,10 @@
   { "name": "四川", "total": 710 },
   { "name": "贵州", "total": 750 },
   { "name": "云南", "total": 700 },
-  { "name": "西藏", "total": 700 },
+  { "name": "西藏", "total": 900 },
   { "name": "陕西", "total": 820 },
   { "name": "甘肃", "total": 740 },
-  { "name": "青海", "total": 770 },
-  { "name": "宁夏", "total": 750 },
+  { "name": "青海", "total": 800 },
+  { "name": "宁夏", "total": 770 },
   { "name": "新疆", "total": 800 }
 ]
