@@ -2,12 +2,6 @@ name = "gaokao-magic"
 compatibility_date = "2026-06-06"
 preview_urls = true
 
-[assets]
-directory = ".output"
-
-[build]
-command = "bun run build"
-
 [[routes]]
 pattern = "gaokao-magic.by-ts.top"
 custom_domain = true
